@@ -1,0 +1,14 @@
+
+python-dotenv
+fastapi
+uvicorn
+watchdog
+networkx
+pydantic
+sqlalchemy
+mcp
+rank-bm25
+sentence-transformers
+faiss-cpu
+numpy
+tree-sitter-language-pack

@@ -1,0 +1,81 @@
+<svg viewBox="0 0 720 420" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <title>Token Usage: Smart-MCP On vs Off for C:\Work\NatFirstAPI</title>
+  <desc>Bar chart comparing token usage when reading the NatFirstAPI folder with Smart-MCP enabled (~200–2,000 tokens) versus disabled (~50,000–200,000+ tokens).</desc>
+
+  <!-- Background -->
+  <rect width="720" height="420" fill="#ffffff" rx="12"/>
+
+  <!-- Title -->
+  <text x="360" y="38" text-anchor="middle" font-size="16" font-weight="700" fill="#111827">Smart-MCP Token Usage — NatFirstAPI</text>
+  <text x="360" y="58" text-anchor="middle" font-size="12" fill="#6b7280">Tokens consumed to read / understand the codebase per query</text>
+
+  <!-- Y-axis label -->
+  <text x="18" y="240" text-anchor="middle" font-size="11" fill="#6b7280" transform="rotate(-90,18,240)">Tokens (approx.)</text>
+
+  <!-- Grid lines -->
+  <line x1="90" y1="80" x2="660" y2="80" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="90" y1="140" x2="660" y2="140" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="90" y1="200" x2="660" y2="200" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="90" y1="260" x2="660" y2="260" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="90" y1="320" x2="660" y2="320" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Y axis labels -->
+  <text x="82" y="84" text-anchor="end" font-size="10" fill="#6b7280">200K</text>
+  <text x="82" y="144" text-anchor="end" font-size="10" fill="#6b7280">150K</text>
+  <text x="82" y="204" text-anchor="end" font-size="10" fill="#6b7280">100K</text>
+  <text x="82" y="264" text-anchor="end" font-size="10" fill="#6b7280">50K</text>
+  <text x="82" y="324" text-anchor="end" font-size="10" fill="#6b7280">0</text>
+
+  <!-- Axis lines -->
+  <line x1="90" y1="80" x2="90" y2="320" stroke="#d1d5db" stroke-width="1.5"/>
+  <line x1="90" y1="320" x2="660" y2="320" stroke="#d1d5db" stroke-width="1.5"/>
+
+  <!-- OFF min bar (50K) -->
+  <rect x="160" y="260" width="80" height="60" rx="4" fill="#f87171" opacity="0.85"/>
+  <!-- OFF max bar (200K) -->
+  <rect x="260" y="80" width="80" height="240" rx="4" fill="#ef4444" opacity="0.9"/>
+
+  <!-- OFF range bracket -->
+  <line x1="200" y1="258" x2="300" y2="258" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="230" y="248" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="600">Range</text>
+  <text x="200" y="252" text-anchor="middle" font-size="10" fill="#dc2626">50K</text>
+  <text x="300" y="72" text-anchor="middle" font-size="10" fill="#dc2626">200K+</text>
+
+  <!-- OFF group label -->
+  <text x="250" y="345" text-anchor="middle" font-size="13" font-weight="700" fill="#ef4444">Smart-MCP OFF</text>
+  <text x="250" y="362" text-anchor="middle" font-size="11" fill="#6b7280">Reads raw files</text>
+
+  <!-- ON min bar (~200 tokens, shown at min height) -->
+  <rect x="420" y="314" width="80" height="6" rx="3" fill="#34d399" opacity="0.9"/>
+  <!-- ON max bar (~2000 tokens) -->
+  <rect x="520" y="308" width="80" height="12" rx="3" fill="#10b981" opacity="0.9"/>
+
+  <!-- ON range bracket -->
+  <line x1="460" y1="312" x2="560" y2="312" stroke="#059669" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="460" y="305" text-anchor="middle" font-size="10" fill="#059669">~200</text>
+  <text x="560" y="299" text-anchor="middle" font-size="10" fill="#059669">~2,000</text>
+
+  <!-- ON group label -->
+  <text x="500" y="345" text-anchor="middle" font-size="13" font-weight="700" fill="#10b981">Smart-MCP ON</text>
+  <text x="500" y="362" text-anchor="middle" font-size="11" fill="#6b7280">Semantic index only</text>
+
+  <!-- Multiplier callout box -->
+  <rect x="265" y="155" width="140" height="46" rx="8" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1.5"/>
+  <text x="335" y="174" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">~100×–1000×</text>
+  <text x="335" y="190" text-anchor="middle" font-size="10" fill="#6b7280">more tokens without Smart-MCP</text>
+
+  <!-- Arrows -->
+  <defs>
+    <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#9ca3af"/>
+    </marker>
+  </defs>
+  <line x1="285" y1="178" x2="248" y2="178" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="385" y1="178" x2="465" y2="312" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Legend -->
+  <rect x="90" y="385" width="12" height="12" rx="2" fill="#ef4444"/>
+  <text x="108" y="396" font-size="11" fill="#6b7280">Smart-MCP OFF (50K – 200K+ tokens)</text>
+  <rect x="340" y="385" width="12" height="12" rx="2" fill="#10b981"/>
+  <text x="358" y="396" font-size="11" fill="#6b7280">Smart-MCP ON (~200 – 2K tokens)</text>
+</svg>
