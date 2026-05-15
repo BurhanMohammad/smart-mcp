@@ -1,0 +1,39 @@
+
+# ── Core MCP framework ─────────────────────────────────────────────────── #
+mcp
+
+# ── Web / async ────────────────────────────────────────────────────────── #
+fastapi
+uvicorn
+python-dotenv
+
+# ── File watching ──────────────────────────────────────────────────────── #
+watchdog
+
+# ── Graph analysis ─────────────────────────────────────────────────────── #
+networkx
+
+# ── Data / schema ──────────────────────────────────────────────────────── #
+pydantic
+sqlalchemy
+
+# ── Retrieval ──────────────────────────────────────────────────────────── #
+rank-bm25
+
+# ── Embeddings ─────────────────────────────────────────────────────────── #
+sentence-transformers
+
+# ── Vector search ──────────────────────────────────────────────────────── #
+faiss-cpu
+
+# ── Numerical ──────────────────────────────────────────────────────────── #
+numpy
+
+# ── AST / parsing helpers ──────────────────────────────────────────────── #
+tree-sitter-language-pack
+
+# ── UX: progress bars during indexing ─────────────────────────────────── #
+tqdm
+
+# ── Token counting (optional but improves search_with_budget accuracy) ── #
+# tiktoken  # uncomment to use OpenAI's exact tokenizer

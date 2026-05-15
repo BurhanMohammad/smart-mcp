@@ -1,0 +1,90 @@
+<svg viewBox="0 0 760 510" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+
+  <!-- Background -->
+  <rect width="760" height="510" fill="#1a1a1a" rx="12"/>
+
+  <!-- ── SUMMARY SECTION ── -->
+  <text x="36" y="44" font-size="13" fill="#e5e7eb">
+    <tspan font-weight="700" fill="#f9fafb">Smart-MCP OFF — reading the full folder</tspan>
+    <tspan fill="#d1d5db"> would cost roughly </tspan>
+    <tspan font-weight="700" fill="#f9fafb">500k–900k tokens</tspan>
+    <tspan fill="#d1d5db"> if everything were read at once.</tspan>
+  </text>
+  <text x="36" y="66" font-size="13" fill="#d1d5db">The biggest culprit is
+    <tspan font-family="monospace" font-size="12" fill="#f87171">  natfirst_api/views.py</tspan>
+    <tspan> alone at 9,762 lines (~98k tokens), followed by static admin</tspan>
+  </text>
+  <text x="36" y="86" font-size="13" fill="#d1d5db">files (jQuery, select2, CSS) which balloon the total to nearly 1M. The 100+ migration files add ~60k tokens.</text>
+
+  <text x="36" y="114" font-size="13" fill="#e5e7eb">
+    <tspan font-weight="700" fill="#f9fafb">Smart-MCP ON — </tspan>
+    <tspan fill="#d1d5db">once the index is built, it serves only context relevant to your specific query —</tspan>
+  </text>
+  <text x="36" y="134" font-size="13" fill="#d1d5db">typically in the
+    <tspan font-weight="700" fill="#f9fafb"> 10k–50k token </tspan>
+    <tspan>range vs. 500k+. That's a potential </tspan>
+    <tspan font-weight="700" fill="#f9fafb">10–50× reduction.</tspan>
+  </text>
+
+  <!-- ── KEY SOURCE FILES TABLE ── -->
+  <rect x="36" y="158" width="688" height="312" rx="10" fill="#262626"/>
+
+  <!-- Table title -->
+  <text x="56" y="184" font-size="14" font-weight="700" fill="#f9fafb">Key source files</text>
+
+  <!-- Column headers -->
+  <text x="56" y="212" font-size="12" fill="#9ca3af">File</text>
+  <text x="580" y="212" text-anchor="end" font-size="12" fill="#9ca3af">Lines</text>
+  <text x="704" y="212" text-anchor="end" font-size="12" fill="#9ca3af">~Tokens</text>
+  <line x1="56" y1="220" x2="708" y2="220" stroke="#374151" stroke-width="1"/>
+
+  <!-- Row 1 -->
+  <rect x="36" y="224" width="688" height="30" fill="#2d2d2d" rx="3"/>
+  <text x="56" y="243" font-size="12" font-family="monospace" fill="#f9fafb">natfirst_api/views.py</text>
+  <text x="580" y="243" text-anchor="end" font-size="12" fill="#d1d5db">9,762</text>
+  <text x="704" y="243" text-anchor="end" font-size="12" font-weight="600" fill="#f87171">~98k</text>
+
+  <!-- Row 2 -->
+  <text x="56" y="273" font-size="12" font-family="monospace" fill="#f9fafb">natfirst_api/models.py</text>
+  <text x="580" y="273" text-anchor="end" font-size="12" fill="#d1d5db">2,824</text>
+  <text x="704" y="273" text-anchor="end" font-size="12" font-weight="600" fill="#fbbf24">~28k</text>
+
+  <!-- Row 3 -->
+  <rect x="36" y="284" width="688" height="30" fill="#2d2d2d" rx="3"/>
+  <text x="56" y="303" font-size="12" font-family="monospace" fill="#f9fafb">pcp_api/views.py</text>
+  <text x="580" y="303" text-anchor="end" font-size="12" fill="#d1d5db">1,019</text>
+  <text x="704" y="303" text-anchor="end" font-size="12" font-weight="600" fill="#fbbf24">~10k</text>
+
+  <!-- Row 4 -->
+  <text x="56" y="333" font-size="12" font-family="monospace" fill="#f9fafb">beauty/views.py</text>
+  <text x="580" y="333" text-anchor="end" font-size="12" fill="#d1d5db">831</text>
+  <text x="704" y="333" text-anchor="end" font-size="12" font-weight="600" fill="#fbbf24">~8k</text>
+
+  <!-- Row 5 -->
+  <rect x="36" y="344" width="688" height="30" fill="#2d2d2d" rx="3"/>
+  <text x="56" y="363" font-size="12" font-family="monospace" fill="#f9fafb">beauty_api/views.py</text>
+  <text x="580" y="363" text-anchor="end" font-size="12" fill="#d1d5db">788</text>
+  <text x="704" y="363" text-anchor="end" font-size="12" font-weight="600" fill="#fbbf24">~8k</text>
+
+  <!-- Row 6 -->
+  <text x="56" y="393" font-size="12" font-family="monospace" fill="#f9fafb">public_api/views.py</text>
+  <text x="580" y="393" text-anchor="end" font-size="12" fill="#d1d5db">732</text>
+  <text x="704" y="393" text-anchor="end" font-size="12" font-weight="600" fill="#fbbf24">~7k</text>
+
+  <!-- Row 7 -->
+  <rect x="36" y="404" width="688" height="30" fill="#2d2d2d" rx="3"/>
+  <text x="56" y="423" font-size="12" font-family="monospace" fill="#9ca3af">migrations (100+ files)</text>
+  <text x="580" y="423" text-anchor="end" font-size="12" fill="#d1d5db">~6,000</text>
+  <text x="704" y="423" text-anchor="end" font-size="12" font-weight="600" fill="#fbbf24">~60k</text>
+
+  <!-- Row 8 - static -->
+  <text x="56" y="453" font-size="12" font-family="monospace" fill="#9ca3af">static/ (jQuery, select2, CSS)</text>
+  <text x="580" y="453" text-anchor="end" font-size="12" fill="#d1d5db">—</text>
+  <text x="704" y="453" text-anchor="end" font-size="12" font-weight="600" fill="#f87171">~200k+</text>
+
+  <line x1="56" y1="462" x2="708" y2="462" stroke="#374151" stroke-width="1"/>
+  <text x="56" y="480" font-size="12" font-weight="700" fill="#f9fafb">Total (without Smart-MCP)</text>
+  <text x="704" y="480" text-anchor="end" font-size="13" font-weight="700" fill="#f87171">500k – 900k+ tokens</text>
+
+
+</svg>
