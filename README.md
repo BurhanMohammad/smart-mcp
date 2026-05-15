@@ -1,616 +1,733 @@
 # Smart MCP Token Optimizer
 
-Smart MCP is a **local MCP retrieval engine** designed to **reduce token usage** for AI coding agents like Claude Code, Codex, Cursor, Continue, and any MCP-compatible AI.
+Smart MCP is a **local MCP retrieval engine** that dramatically reduces the tokens consumed by AI coding agents (Claude Code, Codex, Cursor, Continue, and any MCP-compatible AI).
 
-It automatically indexes repositories and returns only **minimal relevant context**, so AI agents do not load entire files or huge repositories unnecessarily.
-
-The main goal of this project is simple:
-
-Instead of sending entire repositories or huge files to the LLM, Smart MCP retrieves only the minimum relevant code context required for the task.
-
-This reduces:
-
-* token usage
-* AI cost
-* context pollution
-* repeated file loading
-* latency during AI coding workflows
+It automatically indexes your repository and returns only the **minimum relevant code context** for any given task — so the AI never loads entire files or re-reads the whole codebase on every turn.
 
 ---
 
-# Problem
+## The Problem
 
-Large repositories create huge token waste.
+Large repositories create massive token waste.
 
-Example:
+A typical Django project may contain:
 
-A Django project may contain:
+- `views.py` with 9,000+ lines
+- `serializers.py` with 2,000+ lines
+- 100+ migration files
+- Static vendor assets (jQuery, select2, Bootstrap CSS)
+- Repeated boilerplate across modules
 
-* large `views.py`
-* large `serializers.py`
-* static vendor assets
-* migrations
-* repeated boilerplate
-* unrelated modules
-
-Without retrieval optimization, AI agents repeatedly reload:
-
-* huge files
-* unrelated APIs
-* repeated imports
-* unnecessary serializers
-* static assets
-
-This causes:
-
-* massive token usage
-* slower responses
-* worse reasoning quality
-* unstable long AI sessions
+Without Smart-MCP, an AI agent dealing with a bug fix will often load 40K–120K tokens of context — most of it irrelevant. Over a multi-step session this balloons to 500K+ tokens.
 
 ---
 
-# Solution
+## The Solution
 
-Smart MCP creates a retrieval layer between the repository and the AI model.
+Smart MCP sits between your repository and the AI as a retrieval layer:
 
-Instead of this:
-
-```text
-Repository → Full Context → LLM
 ```
+Repository → Full Context → LLM            ← WITHOUT Smart-MCP (500K+ tokens)
 
-Smart MCP does this:
-
-```text
 Repository
 → AST Parsing
 → Symbol Extraction
-→ Chunking
-→ BM25 Retrieval
-→ Embedding Search
-→ FAISS Vector Search
-→ Graph Expansion
-→ Context Compression
-→ Minimal Relevant Context
-→ LLM
-```
-
-The AI receives only the most relevant:
-
-* functions
-* classes
-* APIs
-* services
-* dependency-related chunks
-
-```text
-┌───────────────┐
-│   AI Query    │
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│ Check Index   │
-│ (Already done?)│
-└───────┬───────┘
-        │ No → Auto-Index
-        ▼
-┌───────────────┐
-│ File Scan     │
-│ AST Parsing   │
-│ Chunking      │
-│ Embedding     │
-│ Vector Index  │
-│ Graph Build   │
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│ Hybrid Search │
-│ BM25 + FAISS  │
-│ Re-ranking    │
-│ Context Compress│
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│ Minimal Context│
-│ sent to AI    │
-└───────────────┘
+→ Chunking (real source code per symbol)
+→ BM25 Keyword Index
+→ FAISS Vector Index
+→ Call Graph (Python AST + regex)
+→ Route Mapping
+→ Reciprocal Rank Fusion
+→ Token-Budget Filtering
+→ Minimal Relevant Context → LLM           ← WITH Smart-MCP (3K–50K tokens)
 ```
 
 ---
 
-# Main Features
+## Token Reduction Numbers
 
-## Hybrid Retrieval
+| Workflow | Without Smart-MCP | With Smart-MCP | Reduction |
+|---|---|---|---|
+| Bug fix | 40K–120K tokens | 3K–12K tokens | ~90% |
+| Feature addition | 80K tokens | 8K–15K tokens | ~85% |
+| Multi-step session | 500K+ tokens | 30K–60K tokens | ~88% |
+| First repo orientation | 200K+ tokens | 400–600 tokens | ~99.7% |
 
-Combines:
+**Estimated reduction: 70%–92% on large repositories.**
 
-* BM25 keyword retrieval
-* embedding similarity search
-* FAISS vector retrieval
-
-This improves retrieval quality significantly.
-
----
-
-## AST-Based Chunking
-
-Large files are automatically split into:
-
-* function chunks
-* class chunks
-* symbol chunks
-
-Example:
-
-Instead of sending:
-
-```text
-views.py → 100K tokens
-```
-
-Smart MCP sends:
-
-```text
-authenticate_user()
-generate_jwt()
-validate_token()
-```
-
-only when required.
-
-This is one of the biggest token reduction improvements.
+A real analysis of a Django API repository showed Smart-MCP reducing a 500K–900K token read (if all files were loaded at once) down to **10K–50K tokens per query** — a 10–50× reduction.
 
 ---
 
-## Automatic Noise Reduction
+## Key Features
 
-The engine automatically excludes noisy folders:
+### Real Code in Every Chunk
+Every indexed symbol carries actual source code lines, not just a name label. This makes both keyword search and semantic search dramatically more accurate.
 
-```text
-static/
-node_modules/
-.git/
-dist/
-build/
-coverage/
-migrations/
-__pycache__/
-.next/
-.dart_tool/
-```
+### Hybrid Retrieval with RRF
+Combines BM25 keyword search with FAISS dense-vector search, fused using **Reciprocal Rank Fusion** — proven to outperform simple score averaging.
 
-This improves:
+### Token Budget Control
+`search_with_budget(query, max_tokens=3000)` returns exactly as much context as fits in your budget. The AI never accidentally blows its context window.
 
-* retrieval quality
-* embedding quality
-* indexing speed
-* semantic relevance
+### Call Graph Traversal
+Built from Python AST call extraction + regex for TypeScript/Dart/Go. Enables `get_related`, `get_call_chain`, `explain_symbol`, and `find_dead_code`.
 
----
+### Route-to-View Mapping
+Maps URL routes to handler functions for Django, FastAPI, Flask, Express.js, and Next.js.
 
-## Incremental Indexing
+### Serializer-Model Linking
+Automatically maps Django REST Framework serializers to their backing models.
 
-Only changed files are re-indexed.
+### Persistent FAISS Index
+FAISS vector index is saved to disk and reloaded on server restart — no re-embedding on every start.
 
-This improves:
+### Incremental Indexing
+File hashes are persisted so only changed files are re-indexed. Fast startup on large repos.
 
-* indexing speed
-* retrieval freshness
-* repository scalability
+### Multi-Repository Support
+Index multiple repositories and search across all of them simultaneously.
 
----
+### 15+ Languages Supported
+Python, TypeScript, JavaScript, Dart/Flutter, Go, Java, Kotlin, Rust, Ruby, PHP, C#, Swift, C/C++.
 
-## Graph-Aware Retrieval
-
-The engine builds repository relationships between:
-
-* functions
-* classes
-* dependencies
-
-This improves retrieval relevance for:
-
-* API tracing
-* bug fixing
-* feature implementation
+### Configurable
+Drop a `smart-mcp.config.json` in your repo root to customize embedding model, excluded dirs, token budget, and more.
 
 ---
 
-## Local First
+## Supported Frameworks
 
-Everything runs locally.
+**Backend:** Django, FastAPI, Flask, Express, NestJS, Fastify, Spring, Rails, Laravel, Symfony, Gin, Axum, Actix
 
-No repository data is uploaded externally.
+**Frontend:** React, Next.js, Vue, Nuxt, Svelte, TypeScript
 
-This works well for:
+**Mobile:** Flutter/Dart
 
-* enterprise repositories
-* private codebases
-* large local development environments
+**Other:** Go, Rust, Java/Kotlin, Ruby, PHP, C#/.NET, Swift
 
 ---
 
-# Supported Frameworks
+## Installation
 
-## Backend Frameworks
-
-* Django
-* FastAPI
-* Flask
-* Node.js Express APIs
-
----
-
-## Frontend Frameworks
-
-* React
-* Next.js
-* TypeScript projects
-
----
-
-## Mobile Frameworks
-
-* Flutter
-
----
-
-# Token Reduction
-
-Smart MCP drastically reduces token usage:
-
-| Workflow | Without Smart-MCP | With Smart-MCP |
-|----------|-------------------|----------------|
-| Bug fix | 40K–120K tokens | 3K–12K tokens |
-| Feature addition | 80K tokens | 10K tokens |
-| Multi-step coding | 500K+ tokens | 60K tokens |
-
-**Estimated reduction:** 70%–92% on large repositories.
-
----
-
-# Token Reduction Impact
-
-Estimated reduction after Smart MCP integration:
-
-| Repository Size | Estimated Reduction |
-| --------------- | ------------------- |
-| Small repos     | 30% to 50%          |
-| Medium repos    | 50% to 75%          |
-| Large repos     | 70% to 92%          |
-
----
-
-# Real-World Token Analysis
-
-The diagram below shows a real token analysis of a large Django API repository — comparing what it costs to read the folder **with Smart-MCP OFF vs ON**.
-
-![Smart-MCP Token Analysis](smart_mcp_token_analysis.svg)
-
-**Smart-MCP OFF** — reading the full folder would cost roughly **500k–900k tokens** if everything were read at once. The biggest culprit is `natfirst_api/views.py` alone at 9,762 lines (~98k tokens), followed by the static admin files (jQuery, select2, CSS) which balloon the total to nearly 1M. The 100+ migration files add another ~60k tokens despite being individually small.
-
-**Smart-MCP ON** — once the index is built, it serves only context relevant to your specific query — typically in the **10k–50k token** range vs. 500k+. That's a potential **10–50× reduction**.
-
----
-
-# Automatic Indexing Flow
-
-```text
-AI Query
-→ Smart MCP checks if repository is indexed
-→ If not, automatically indexes repository:
-   • File scan
-   • AST parsing
-   • Chunk creation
-   • Embedding & vector index
-   • Dependency graph creation
-→ Retrieval pipeline:
-   • BM25 + FAISS vector search
-   • Cross-encoder re-ranking
-   • Context compression
-→ Minimal relevant context returned to AI
-```
-
----
-
-# Real Example
-
-## Without Smart MCP
-
-AI receives:
-
-```text
-views.py
-serializers.py
-models.py
-settings.py
-middleware.py
-urls.py
-```
-
-Estimated:
-
-```text
-40K to 120K tokens
-```
-
-per workflow.
-
----
-
-## With Smart MCP
-
-AI receives only:
-
-```text
-authenticate_user()
-jwt_validator()
-login_serializer()
-token_service()
-```
-
-Estimated:
-
-```text
-3K to 12K tokens
-```
-
-per workflow.
-
----
-
-# Why This Matters
-
-Benefits:
-
-* lower AI cost
-* faster responses
-* higher retrieval quality
-* less context pollution
-* better long-running AI sessions
-* improved repository understanding
-
----
-
-# Repository Structure
-
-```text
-app/
-├── chunking/
-├── core/
-├── mcp/
-├── parsers/
-├── storage/
-├── watchers/
-```
-
----
-
-# Core Components
-
-| Component           | Purpose                   |
-| ------------------- | ------------------------- |
-| AST Parser          | Extract functions/classes |
-| Chunker             | Split large files         |
-| Hybrid Retriever    | Semantic retrieval        |
-| FAISS Store         | Vector search             |
-| Graph Engine        | Dependency traversal      |
-| Incremental Indexer | Fast re-indexing          |
-| MCP Server          | AI integration            |
-
----
-
-# Installation
-
-## 1. Create Virtual Environment
+### 1. Create a virtual environment
 
 Windows:
-
 ```bash
 python -m venv venv
 venv\Scripts\activate
 ```
 
-Linux/macOS:
-
+macOS / Linux:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
----
-
-## 2. Install Dependencies
+### 2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-# Setup — Automatic (Recommended)
-
-Instead of manually building the index and starting the MCP server, use the built-in setup commands to run everything automatically.
-
----
-
-## setup_global
-
-Sets up Smart MCP **globally** — registers the MCP server so it is available across all projects on your machine without repeating setup per repository.
-
-```python
-from app.core.setup import setup_global
-
-setup_global()
-```
-
-What it does automatically:
-
-* installs MCP server configuration globally
-* registers Smart MCP as a globally available tool for Claude Code, Codex, and Cursor
-* no manual `mcp.json` editing required
-* works across all repositories on your machine
+> **Optional:** For exact token counting instead of the fast approximation:
+> ```bash
+> pip install tiktoken
+> ```
 
 ---
 
-## setup_project
+## Setup — Choose One Path
 
-Sets up Smart MCP **for a specific project** — indexes the repository and starts the MCP server automatically for that project only.
+### Option A: Global Setup (recommended — works across all projects)
 
-```python
-from app.core.setup import setup_project
-
-setup_project(path="C:/projects/myrepo")
-```
-
-What it does automatically:
-
-* scans the repository
-* excludes noisy folders (`static/`, `migrations/`, `node_modules/`, etc.)
-* parses symbols via AST
-* builds chunks
-* generates embeddings
-* creates the FAISS vector index
-* builds the dependency graph
-* starts the MCP server
-* ready for AI queries immediately
-
----
-
-## Comparison: Manual vs Automatic
-
-| Step | Manual | `setup_global` / `setup_project` |
-|------|--------|----------------------------------|
-| Build index | `python -m app.main` | Automatic |
-| Start MCP server | `python -m app.mcp.server` | Automatic |
-| Configure `mcp.json` | Edit manually | Automatic |
-| Ready for AI | After all steps | Immediately |
-
----
-
-# Build Repository Index (Manual)
-
-If you prefer manual control, run:
+Run **once** on your machine. Smart-MCP will automatically index whatever project you open in Claude Code, Cursor, or Codex — no per-project configuration needed.
 
 ```bash
-python -m app.main
+python C:\Work\smart-mcp\setup_global.py
 ```
 
-Then enter your repository path:
+What this does:
+- Registers Smart-MCP in all AI clients found on your machine (Claude Code, Cursor, Codex, Claude Desktop, Windsurf, Continue)
+- Writes `~/.claude/CLAUDE.md` — global instructions so Claude automatically uses Smart-MCP tools when you type naturally
+- Warns about and optionally clears any hardcoded `REPO_PATH` in `.env`
 
-```text
-C:\projects\myrepo
+After this, just open any project in Claude Code and type naturally:
+
+```
+the login is not working
 ```
 
-or
+Claude reads the CLAUDE.md instructions and calls Smart-MCP tools automatically. You never need to mention tool names.
 
-```text
-/home/user/myrepo
+To preview without writing files:
+```bash
+python setup_global.py --dry-run
 ```
-
-The engine will:
-
-* scan repository
-* exclude noisy folders
-* parse symbols
-* build chunks
-* generate embeddings
-* create vector index
-* prepare retrieval engine
 
 ---
 
-# Run MCP Server (Manual)
+### Option B: Per-Project Setup (for pre-building the index)
+
+Use this if you want to pre-build the index for a specific project so the first query is instant.
 
 ```bash
+# From inside the project:
+python C:\Work\smart-mcp\setup_project.py
+
+# Or pass path explicitly:
+python C:\Work\smart-mcp\setup_project.py C:\Work\MyProject
+
+# Skip index pre-build:
+python C:\Work\smart-mcp\setup_project.py --no-index
+```
+
+What this does:
+- Writes `<project>/.claude/mcp.json` — wires Smart-MCP for this project
+- Writes `<project>/CLAUDE.md` — auto-dispatch instructions for Claude
+- Pre-builds the index now (so first query is instant)
+
+---
+
+### How Multi-Project Works
+
+After `setup_global.py`, Smart-MCP auto-detects the project using this priority:
+
+```
+1. CLI argument        python -m app.mcp.server <path>
+2. AI client env var   CLAUDE_PROJECT_DIR / VSCODE_WORKSPACE_FOLDER / PROJECT_ROOT / …
+3. REPO_PATH in .env   (commented out by default — leave it commented for multi-project use)
+4. Auto-detect cwd     ← default after global setup
+```
+
+So when you open `C:\Work\ProjectA` in Claude Code, Smart-MCP indexes `ProjectA`.
+When you open `C:\Work\ProjectB`, it indexes `ProjectB`. No config changes needed.
+
+---
+
+### Manual Server Start (advanced)
+
+```bash
+# Auto-detect project from current directory:
 python -m app.mcp.server
-```
 
-The MCP server starts locally.
+# Explicit path:
+python -m app.mcp.server C:\Work\MyProject
+
+# Force full re-index (ignore cache):
+python -m app.mcp.server C:\Work\MyProject --force
+```
 
 ---
 
-# Claude Code Integration
+## Configuration
 
-Add MCP configuration:
+Drop a `smart-mcp.config.json` in your **repository root** to customize behaviour:
 
 ```json
 {
-  "mcpServers": {
-    "smart-mcp": {
-      "command": "python",
-      "args": [
-        "-m",
-        "app.mcp.server"
-      ]
-    }
-  }
+  "embedding_model":      "BAAI/bge-small-en-v1.5",
+  "max_file_kb":          500,
+  "top_k_default":        8,
+  "token_budget_default": 3000,
+  "excluded_dirs":        ["custom_vendor", "auto_generated"],
+  "index_on_startup":     true,
+  "cache_subdir":         ".smart-mcp-cache",
+  "graph_depth_default":  1
 }
 ```
 
-Usually added in:
+**Available models** (trade-off: speed vs quality):
 
-```text
-.claude/mcp.json
+| Model | Size | Speed | Quality |
+|---|---|---|---|
+| `BAAI/bge-small-en-v1.5` | 33M | ⚡ Fast | Good (default) |
+| `BAAI/bge-base-en-v1.5` | 109M | Moderate | Better |
+| `BAAI/bge-large-en-v1.5` | 335M | Slow | Best |
+
+**Environment variable overrides:**
+
+| Env Var | Config Key | Example |
+|---|---|---|
+| `SMART_MCP_MODEL` | `embedding_model` | `BAAI/bge-base-en-v1.5` |
+| `SMART_MCP_MAX_FILE_KB` | `max_file_kb` | `200` |
+| `SMART_MCP_TOP_K` | `top_k_default` | `10` |
+| `SMART_MCP_TOKEN_BUDGET` | `token_budget_default` | `4000` |
+
+---
+
+## MCP Tools Reference (15 tools)
+
+### SEARCH
+
+---
+
+#### `search_context` *(primary tool)*
+
+Hybrid BM25 + FAISS semantic search with RRF score fusion.
+
+```
+search_context(
+  query:       str,           # natural language or symbol name
+  top_k:       int = 8,       # max results
+  file_filter: str = "",      # narrow to files containing this string
+  symbol_type: str = ""       # function | class | method | route | …
+)
+```
+
+Returns each result with: `symbol`, `type`, `file`, `start_line`, `end_line`, `class_name`, `decorators`, `docstring`, `code`, `score`.
+
+---
+
+#### `search_with_budget`
+
+Token-budget-aware search — returns results that fit inside `max_tokens`.
+
+```
+search_with_budget(
+  query:      str,
+  max_tokens: int = 3000,   # token budget
+  file_filter: str = "",
+  symbol_type: str = ""
+)
+```
+
+Returns: `used_tokens`, `budget_pct`, and trimmed results.
+
+---
+
+#### `search_signatures`
+
+Returns only function signatures — no body code. ~10–30 tokens per result.
+
+```
+search_signatures(
+  query:       str,
+  top_k:       int = 20,
+  file_filter: str = ""
+)
 ```
 
 ---
 
-# Codex Integration
+#### `search_by_file`
 
-Run MCP server separately:
+List or search symbols scoped to a specific file.
 
-```bash
-python -m app.mcp.server
 ```
-
-Then configure the coding agent to use:
-
-* `search_context`
-* semantic retrieval tools
-
----
-
-# Recommended Workflow
-
-```text
-Repository
-→ Run setup_project(path="...") OR setup_global()
-→ Smart MCP indexes and starts automatically
-→ Connect Claude / Codex / Cursor
-→ AI retrieves only relevant chunks
-→ Reduced token usage
-→ Faster coding workflow
+search_by_file(
+  file_path: str,      # partial path: "views.py" or "auth/serializers"
+  query:     str = "", # optional re-rank query
+  limit:     int = 30
+)
 ```
 
 ---
 
-# Current Focus
-
-This project focuses only on:
-
-* token reduction
-* semantic retrieval
-* repository chunking
-* context minimization
-* AI coding optimization
+### SYMBOL LOOKUP
 
 ---
 
-# Future Improvements
+#### `get_symbol`
 
-Planned improvements:
+Exact-match lookup. Returns full source code.
 
-* deeper AST relationships
-* advanced graph traversal
-* route-to-view mapping
-* serializer-model linking
-* persistent vector databases
-* better reranking
-* repository benchmark suite
-* advanced semantic compression
-* multi-repository memory
+```
+get_symbol(
+  name: str,
+  file: str = ""   # optional disambiguator
+)
+```
+
+---
+
+#### `find_usages`
+
+Find where a symbol is referenced (called/imported/used) — not defined.
+
+```
+find_usages(
+  symbol_name: str,
+  top_k:       int = 8
+)
+```
+
+---
+
+#### `explain_symbol`
+
+Full context in one call: definition + callers + callees.
+
+```
+explain_symbol(
+  name: str,
+  file: str = ""
+)
+```
+
+Saves 60–70% of tokens vs chaining `get_symbol` + `find_usages` + `get_related`.
+
+---
+
+### GRAPH TRAVERSAL
+
+---
+
+#### `get_related`
+
+BFS graph expansion: symbols within N hops (callers + callees + inheritance).
+
+```
+get_related(
+  symbol_name:  str,
+  depth:        int  = 1,
+  include_code: bool = True   # False = signatures only
+)
+```
+
+---
+
+#### `get_call_chain`
+
+Follow the call chain from a symbol N levels deep.
+
+```
+get_call_chain(
+  symbol_name: str,
+  depth:       int = 3,
+  direction:   str = "down"   # "down" = dependencies, "up" = dependants
+)
+```
+
+---
+
+### NAVIGATION
+
+---
+
+#### `list_symbols`
+
+Browse all indexed symbols without a search query.
+
+```
+list_symbols(
+  file_pattern: str = "",
+  symbol_type:  str = "",
+  limit:        int = 50
+)
+```
+
+---
+
+#### `list_routes`
+
+All URL routes mapped to handler functions.
+
+```
+list_routes(
+  method:      str = "",   # GET | POST | PUT | DELETE | …
+  path_filter: str = ""
+)
+```
+
+---
+
+#### `list_serializers`
+
+Django REST Framework serializer → model mapping.
+
+```
+list_serializers(
+  model_filter: str = ""
+)
+```
+
+---
+
+### ANALYSIS
+
+---
+
+#### `get_repo_summary`
+
+Full codebase overview in ~300–600 tokens.
+
+```
+get_repo_summary()
+```
+
+Returns: framework, languages, file counts, top files, models, routes summary, hot symbols (most-called), dead code estimate, index health.
+
+**Use this first when starting work on an unfamiliar repository.**
+
+---
+
+#### `find_dead_code`
+
+Symbols defined but never called anywhere in the indexed codebase.
+
+```
+find_dead_code(
+  limit: int = 20
+)
+```
+
+---
+
+#### `get_index_stats`
+
+Index health: chunks, files, type distribution, graph edges, model, timestamps.
+
+```
+get_index_stats()
+```
+
+---
+
+### MULTI-REPO
+
+---
+
+#### `list_repos`
+
+List all indexed repositories (single-repo or multi-repo mode).
+
+```
+list_repos()
+```
+
+---
+
+#### `search_all_repos`
+
+Search across ALL indexed repos simultaneously. Results merged with RRF.
+
+```
+search_all_repos(
+  query:  str,
+  top_k:  int = 8
+)
+```
+
+---
+
+## How to Use — Just Type Naturally
+
+After running `setup_global.py` or `setup_project.py`, a `CLAUDE.md` file is written to your project (or globally to `~/.claude/CLAUDE.md`). Claude reads this automatically and knows to use Smart-MCP tools — **you never need to mention tool names**.
+
+Just describe what you want in plain language.
+
+---
+
+### Fixing bugs
+
+```
+the authentication is not working
+```
+```
+login keeps returning 403
+```
+```
+JWT token validation is broken
+```
+```
+there's a bug in the order creation flow
+```
+
+→ Claude automatically calls `search_with_budget("authentication issue", 4000)`, finds the relevant functions, and fixes the bug.
+
+---
+
+### Understanding code
+
+```
+how does the payment flow work
+```
+```
+explain the user registration process
+```
+```
+what does the validate_token function do
+```
+
+→ Claude calls `explain_symbol("validate_token")` or `get_call_chain("process_payment")` automatically.
+
+---
+
+### Adding features
+
+```
+add email notifications when an order is shipped
+```
+```
+implement a new endpoint for user profile update
+```
+```
+add rate limiting to the login endpoint
+```
+
+→ Claude calls `get_repo_summary()`, then `search_with_budget("order notifications")`, then `list_routes()` to understand existing patterns.
+
+---
+
+### Exploring the codebase
+
+```
+give me an overview of this project
+```
+```
+what API endpoints do we have
+```
+```
+what models does this Django app have
+```
+```
+how is the Order model serialized
+```
+
+→ Claude calls `get_repo_summary()`, `list_routes()`, `list_serializers(model_filter="Order")` etc. automatically.
+
+---
+
+### Refactoring
+
+```
+I need to rename validate_user to authenticate_user — what will break?
+```
+```
+clean up the auth module
+```
+
+→ Claude calls `get_related("validate_user", depth=2)` then `find_usages("validate_user")` to map the full impact.
+
+---
+
+### Tracing execution
+
+```
+trace what happens when a user logs in
+```
+```
+follow the payment processing flow from the API endpoint
+```
+
+→ Claude calls `get_call_chain("login_view", depth=3, direction="down")`.
+
+---
+
+### Finding dead code
+
+```
+are there any unused functions we should clean up
+```
+
+→ Claude calls `find_dead_code(limit=30)`.
+
+---
+
+## Example Prompts Showing Token Savings
+
+| User types | What Claude does | Token cost | Without Smart-MCP |
+|---|---|---|---|
+| `"give me an overview"` | `get_repo_summary()` | ~400 tok | 200K+ tok (read all files) |
+| `"login is broken"` | `search_with_budget("login", 4000)` | ~2K–4K tok | 40K–120K tok |
+| `"what calls validate_token"` | `find_usages("validate_token")` | ~500 tok | 20K+ tok |
+| `"explain create_order"` | `explain_symbol("create_order")` | ~1K–2K tok | 15K–40K tok |
+| `"what auth functions exist"` | `search_signatures("auth", top_k=20)` | ~200 tok | 5K–20K tok |
+| `"what endpoints do we have"` | `list_routes()` | ~300 tok | 10K tok (read all urls.py) |
+| `"how is User serialized"` | `list_serializers("User")` | ~100 tok | 5K tok |
+
+---
+
+## Architecture
+
+```
+smart-mcp/
+├── app/
+│   ├── chunking/
+│   │   └── ast_chunker.py        # Build rich chunks with real source code
+│   ├── core/
+│   │   ├── code_extractor.py     # Read/cache actual source lines
+│   │   ├── file_scanner.py       # Scan files (15+ languages, gitignore)
+│   │   ├── framework_detector.py # Detect 20+ frameworks
+│   │   ├── hybrid_retriever.py   # BM25 + FAISS + RRF + graph
+│   │   ├── graph_builder.py      # Call graph from AST + regex
+│   │   ├── incremental_indexer.py# Persistent file-hash cache
+│   │   ├── route_mapper.py       # URL → handler mapping
+│   │   ├── serializer_linker.py  # Django serializer → model
+│   │   ├── multi_repo_manager.py # Multi-repo index management
+│   │   ├── repo_summarizer.py    # Codebase overview generator
+│   │   └── token_counter.py      # Token counting + budget filtering
+│   ├── mcp/
+│   │   ├── server.py             # FastMCP server (17 tools)
+│   │   └── tools.py              # Tool implementations + state
+│   ├── parsers/
+│   │   ├── python_parser.py      # AST: decorators, calls, docstrings
+│   │   ├── typescript_parser.py  # Regex: funcs, classes, interfaces, routes
+│   │   ├── flutter_parser.py     # Regex: widgets, mixins, extensions
+│   │   └── go_parser.py          # Regex: funcs, structs, interfaces
+│   ├── templates/
+│   │   └── CLAUDE.md             # ← Auto-dispatch instructions for Claude
+│   ├── config.py                 # Config loader (file + env + defaults)
+│   └── main.py                   # Indexing orchestrator
+├── setup_global.py               # ← One-time machine-wide setup
+├── setup_project.py              # ← Per-project setup + index pre-build
+├── requirements.txt
+├── .env                          # REPO_PATH (leave commented for multi-project)
+└── README.md
+```
+
+---
+
+## Core Components
+
+| Component | Purpose | Token Impact |
+|---|---|---|
+| `HybridRetriever` | BM25 + FAISS + RRF fusion | Retrieves 8 chunks vs loading whole files |
+| `GraphBuilder` | AST call graph | Powers `get_related`, `explain_symbol`, dead code |
+| `TokenCounter` | Budget-aware filtering | `search_with_budget` never overruns context |
+| `ASTChunker` | Real code in chunks | Embedding quality ↑ → fewer irrelevant results |
+| `RouteMapper` | URL → handler | Find views without reading urls.py |
+| `SerializerLinker` | Serializer → model | Direct model↔serializer lookup |
+| `RepoSummarizer` | Overview in 400 tokens | Orient AI in seconds, not thousands of tokens |
+| `MultiRepoManager` | Cross-repo search | Monorepo and microservice support |
+| `IncrementalIndexer` | Persistent hash cache | Fast re-index (only changed files) |
+
+---
+
+## Future Improvements
+
+| Item | Status |
+|---|---|
+| Deeper AST relationships (decorators, base classes, return types, calls) | ✅ Done |
+| Route-to-view mapping (Django, FastAPI, Flask, Express, Next.js) | ✅ Done |
+| Persistent vector database (FAISS saved to disk) | ✅ Done |
+| Better reranking (Reciprocal Rank Fusion) | ✅ Done |
+| Advanced semantic compression (real code in chunks) | ✅ Done |
+| Multi-language support (Go, Java, Kotlin, Rust, Ruby, PHP, C#, Swift) | ✅ Done |
+| Incremental indexing with persistent hash cache | ✅ Done |
+| Progress reporting during indexing (tqdm) | ✅ Done |
+| Advanced graph traversal (`get_related`, `get_call_chain`) | ✅ Done |
+| Serializer-model linking (Django REST Framework) | ✅ Done |
+| Multi-repository memory and cross-repo search | ✅ Done |
+| Token-budget-aware retrieval (`search_with_budget`) | ✅ Done |
+| Repository summary tool (`get_repo_summary`) | ✅ Done |
+| Dead code detection (`find_dead_code`) | ✅ Done |
+| Signatures-only mode (`search_signatures`) | ✅ Done |
+| File-based configuration (`smart-mcp.config.json`) | ✅ Done |
+| Repository benchmark suite | 🔲 Planned |
+| LSP-based exact Go / Java / Rust symbol extraction | 🔲 Planned |
+| Semantic deduplication across a session | 🔲 Planned |
+| Auto-generated CLAUDE.md / AGENTS.md from index | 🔲 Planned |
+
+---
+
+## Why Local-First?
+
+Everything runs on your machine. No repository data is sent to external servers.
+
+This is important for:
+- Enterprise and proprietary codebases
+- GDPR / data-residency requirements
+- Air-gapped development environments
+- Codebases that cannot leave the local network
